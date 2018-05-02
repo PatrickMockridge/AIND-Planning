@@ -38,37 +38,53 @@ class HaveCakeProblem(Problem):
         return [eat_action, bake_action]
 
     def actions(self, state: str) -> list:  # of Action
+        # The use of : and -> are referred to as function annotations
         possible_actions = []
         kb = PropKB()
+        # PropKB is a knowledge base for propositional logic
         kb.tell(decode_state(state, self.state_map).pos_sentence())
+        # decode_state returns a FluentState object. It further filters this object to the positive literals
+        # kb.tell adds the sentence's clauses to the KB.
         for action in self.actions_list:
+            # If there are any possible actions in the action list, make the default value true
             is_possible = True
+            # if the knowledge base does not have the positive literals that come next, make it false.
             for clause in action.precond_pos:
                 if clause not in kb.clauses:
                     is_possible = False
+            # if the knowledge base has the negative literals that come next, make it false. This takes us away from goal.
             for clause in action.precond_neg:
                 if clause in kb.clauses:
                     is_possible = False
+            # if this action is still possible, add it to the list of possible actions
             if is_possible:
                 possible_actions.append(action)
         return possible_actions
 
     def result(self, state: str, action: Action):
         new_state = FluentState([], [])
+        # FluentState object with empty literals
         old_state = decode_state(state, self.state_map)
+        # Takes a string of TF, and turns it into a fluent (if valid object)
         for fluent in old_state.pos:
+            # Add all fluents that were true in the old state to the new state.
+            # Check if it is not removed by the next action.
             if fluent not in action.effect_rem:
                 new_state.pos.append(fluent)
         for fluent in action.effect_add:
+            # Add all fluents that are newly made positive in the next state due to the action.
             if fluent not in new_state.pos:
                 new_state.pos.append(fluent)
         for fluent in old_state.neg:
+            # Add all fluents that were false in the old state to the new state.
+            # Check that it and not added by the next action.
             if fluent not in action.effect_add:
                 new_state.neg.append(fluent)
         for fluent in action.effect_rem:
+            # Add all fluents that are newly made negative in the next state due to the action.
             if fluent not in new_state.neg:
                 new_state.neg.append(fluent)
-        return encode_state(new_state, self.state_map)
+        return encode_state(new_state, self.state_map) # Creates a TF string by checking new state against map.
 
     def goal_test(self, state: str) -> bool:
         kb = PropKB()
@@ -116,18 +132,33 @@ def have_cake():
 
 
 if __name__ == '__main__':
+    # Will run this code only if this module is being called directly in the terminal shell.
+    # If it is imported by another module, it will not run.
     p = have_cake()
+    # The cake method has two functions within - get_init() and get_goal()
+    # get_init() assigns positive and negative expressions. returns combination as FluentState
+    # It returns a FluentState object with the positive and negative expressions combined
+
     print("**** Have Cake example problem setup ****")
     print("Initial state for this problem is {}".format(p.initial))
+
+    # Prints out initial fluent state. In this case TF.
     print("Actions for this domain are:")
+
+    # This class has a static variable called actions_list
+    # actions_list is assigned to a get_actions function call.
     for a in p.actions_list:
         print('   {}{}'.format(a.name, a.args))
+
     print("Fluents in this problem are:")
     for f in p.state_map:
+        # state_map = initial.pos + initial.neg
         print('   {}'.format(f))
+
     print("Goal requirement for this problem are:")
     for g in p.goal:
         print('   {}'.format(g))
+
     print()
     print("*** Breadth First Search")
     run_search(p, breadth_first_search)
